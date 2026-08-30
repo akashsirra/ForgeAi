@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚒️ ForgeAI
 
-## Getting Started
+**Turn an idea into a polished website with AI.**
 
-First, run the development server:
+ForgeAI is an AI-powered website builder that transforms natural-language prompts into complete, responsive HTML websites — then lets you refine them with follow-up instructions.
+
+## ✨ Features
+
+- 🤖 AI website generation
+- ✏️ AI-powered website editing
+- 👀 Live preview
+- ↩️ Undo / Redo
+- ☁️ Cloud project saving
+- 🔐 Firebase authentication
+- 📱 Responsive generated websites
+- ⚡ Next.js + TypeScript
+- 🧠 Groq-powered AI
+
+## 🚀 Live Demo
+
+https://forgeai-dun.vercel.app
+
+## 🛠️ Tech Stack
+
+Next.js • React • TypeScript • Tailwind CSS • Groq • AI SDK • Firebase • Vercel
+
+## 💡 How it works
+
+Describe what you want:
+
+> Build a modern gaming community website called Nexus Arena with tournaments, a leaderboard, pricing, and a dark futuristic design.
+
+ForgeAI generates the website and shows it instantly in the live preview.
+
+Then refine it:
+
+> Add a tournament registration form and make the primary buttons blue.
+
+## 🏗️ Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+npm install
+npm run dev -- --webpack
