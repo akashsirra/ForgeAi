@@ -2,7 +2,11 @@
 
 **Turn an idea into a polished website with AI.**
 
-ForgeAI is an AI-powered website builder that transforms natural-language prompts into complete, responsive HTML websites — then lets you refine them with follow-up instructions.
+ForgeAI transforms natural-language ideas into complete, responsive websites and lets you refine them with simple follow-up instructions.
+
+## 🚀 Live Demo
+
+https://forgeai-dun.vercel.app
 
 ## ✨ Features
 
@@ -12,32 +16,28 @@ ForgeAI is an AI-powered website builder that transforms natural-language prompt
 - ↩️ Undo / Redo
 - ☁️ Cloud project saving
 - 🔐 Firebase authentication
-- 📱 Responsive generated websites
+- 📱 Responsive websites
 - ⚡ Next.js + TypeScript
 - 🧠 Groq-powered AI
 
-## 🚀 Live Demo
+## 🧠 How It Works
 
-https://forgeai-dun.vercel.app
+**Idea → AI → Website → Edit → Deploy**
+
+Describe what you want, let ForgeAI generate the website, preview it instantly, then refine it using natural-language instructions.
 
 ## 🛠️ Tech Stack
 
 Next.js • React • TypeScript • Tailwind CSS • Groq • AI SDK • Firebase • Vercel
 
-## 💡 How it works
+## 🎯 Vision
 
-Describe what you want:
+ForgeAI makes website creation as simple as describing what you want.
 
-> Build a modern gaming community website called Nexus Arena with tournaments, a leaderboard, pricing, and a dark futuristic design.
+No complicated design tools. Just describe it and build.
 
-ForgeAI generates the website and shows it instantly in the live preview.
+## ⭐ Support
 
-Then refine it:
+If you like ForgeAI, consider giving the repository a ⭐ on GitHub.
 
-> Add a tournament registration form and make the primary buttons blue.
-
-## 🏗️ Run locally
-
-```bash
-npm install
-npm run dev -- --webpack
+Built with ⚒️ by Akash Sirra
