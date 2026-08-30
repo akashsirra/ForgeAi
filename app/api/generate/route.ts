@@ -357,6 +357,62 @@ function cleanHtml(text: string) {
     .trim();
 }
 
+function validateHtml(html: string) {
+  const errors: string[] = [];
+  const normalized = html.trim().toLowerCase();
+
+  if (!normalized.startsWith("<!doctype html>")) {
+    errors.push("missing <!DOCTYPE html>");
+  }
+
+  if (!normalized.includes("<html")) {
+    errors.push("missing <html>");
+  }
+
+  if (!normalized.includes("<head")) {
+    errors.push("missing <head>");
+  }
+
+  if (!normalized.includes("<body")) {
+    errors.push("missing <body>");
+  }
+
+  if (
+    !normalized.includes('name="viewport"') &&
+    !normalized.includes("name='viewport'")
+  ) {
+    errors.push("missing viewport metadata");
+  }
+
+  if (!normalized.includes("<style")) {
+    errors.push("missing <style>");
+  }
+
+  if (normalized.includes("```")) {
+    errors.push("contains Markdown code fences");
+  }
+
+  if (/^\s*(here is|here's|sure|certainly)/i.test(html)) {
+    errors.push("contains explanatory text before HTML");
+  }
+
+  const scriptOpen = (normalized.match(/<script\b/g) || []).length;
+  const scriptClose = (normalized.match(/<\/script>/g) || []).length;
+
+  if (scriptOpen !== scriptClose) {
+    errors.push("unbalanced <script> tags");
+  }
+
+  if (html.length < 1200) {
+    errors.push("HTML output is suspiciously small");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -389,8 +445,9 @@ export async function POST(req: Request) {
         });
 
         const html = cleanHtml(result.text);
+        const quality = validateHtml(html);
 
-        if (html && html.toLowerCase().includes("<html")) {
+        if (quality.valid) {
           console.log(`ForgeAI success: ${model}`);
 
           return Response.json({
@@ -399,8 +456,14 @@ export async function POST(req: Request) {
           });
         }
 
-        lastError = new Error(`${model} returned invalid HTML.`);
-        console.error(`ForgeAI invalid response from ${model}`);
+        lastError = new Error(
+          `${model} failed HTML quality control: ${quality.errors.join(", ")}`
+        );
+
+        console.error(
+          `ForgeAI quality control rejected ${model}:`,
+          quality.errors
+        );
       } catch (error) {
         lastError = error;
         console.error(`ForgeAI ${model} failed:`, error);
