@@ -28,7 +28,6 @@ export default function Home() {
   const [instruction, setInstruction] = useState("");
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
-  const [buildStage, setBuildStage] = useState(0);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -38,9 +37,6 @@ export default function Home() {
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [htmlHistory, setHtmlHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [showEntrance, setShowEntrance] = useState(true);
-  const [openingEntrance, setOpeningEntrance] = useState(false);
-  const [windowOpen, setWindowOpen] = useState(false);
 
   function pushHistory(newHtml: string) {
     setHtmlHistory((current) => {
@@ -166,9 +162,6 @@ export default function Home() {
   function loadProject(project: Project) {
     setPrompt(project.prompt);
     setHtml(project.html);
-    setCurrentProjectId(project.id);
-    setHtmlHistory([project.html]);
-    setHistoryIndex(0);
     setShowProjects(false);
     setError("");
   }
@@ -188,12 +181,7 @@ export default function Home() {
     if (!prompt.trim()) return;
 
     setLoading(true);
-    setBuildStage(1);
     setError("");
-
-    const stageTimer1 = setTimeout(() => setBuildStage(2), 700);
-    const stageTimer2 = setTimeout(() => setBuildStage(3), 1500);
-    const stageTimer3 = setTimeout(() => setBuildStage(4), 2500);
 
     try {
       const res = await fetch("/api/generate", {
@@ -221,16 +209,11 @@ export default function Home() {
         throw new Error("The AI returned no website.");
       }
 
-      setBuildStage(5);
       pushHistory(data.html);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Build failed.");
     } finally {
-      clearTimeout(stageTimer1);
-      clearTimeout(stageTimer2);
-      clearTimeout(stageTimer3);
       setLoading(false);
-      setTimeout(() => setBuildStage(0), 700);
     }
   }
 
@@ -288,83 +271,7 @@ export default function Home() {
   }
 
   return (
-    <>
-      {showEntrance && (
-        <div
-          className={`forge-flight-deck ${openingEntrance ? "forge-flight-opening" : ""}`}
-          onClick={() => {
-            if (!windowOpen) {
-              setWindowOpen(true);
-              setTimeout(() => setOpeningEntrance(true), 700);
-              setTimeout(() => setShowEntrance(false), 1900);
-            }
-          }}
-        >
-          <div className="cabin-ceiling">
-            <div className="cabin-light-strip" />
-            <div className="cabin-air-vent" />
-            <div className="cabin-air-vent second" />
-          </div>
-
-          <div className="cabin-wall cabin-wall-left">
-            <div className="cabin-window small-window">
-              <div className="cabin-sky" />
-            </div>
-            <div className="seat-back seat-left-one" />
-            <div className="seat-back seat-left-two" />
-          </div>
-
-          <div className="cabin-wall cabin-wall-right">
-            <div className="cabin-window small-window">
-              <div className="cabin-sky" />
-            </div>
-            <div className="seat-back seat-right-one" />
-            <div className="seat-back seat-right-two" />
-          </div>
-
-          <div className="flight-center">
-            <div className="hero-window">
-              <div className="hero-window-sky">
-                <div className="hero-cloud hero-cloud-one" />
-                <div className="hero-cloud hero-cloud-two" />
-                <div className="hero-cloud hero-cloud-three" />
-                <div className="hero-sun" />
-              </div>
-
-              <div className={`hero-window-frame ${windowOpen ? "hero-window-open" : ""}`}>
-                <div className="hero-window-glass" />
-                <div className="window-handle">
-                  <span />
-                </div>
-              </div>
-            </div>
-
-            <div className="flight-brand">
-              <div className="flight-logo">⚒️</div>
-              <h1>ForgeAI</h1>
-              <p>Build beyond imagination.</p>
-              <button
-                className="flight-enter"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setOpeningEntrance(true);
-                  setTimeout(() => setShowEntrance(false), 1400);
-                }}
-              >
-                Open the window →
-              </button>
-            </div>
-          </div>
-
-          <div className="cabin-floor">
-            <div className="floor-aisle" />
-          </div>
-
-          <div className="cabin-vignette" />
-        </div>
-      )}
-
-      <main className="min-h-screen bg-zinc-950 text-white">
+    <main className="min-h-screen bg-zinc-950 text-white">
       <header className="flex h-16 items-center justify-between border-b border-zinc-800 px-5">
         <div className="text-xl font-bold">⚒️ ForgeAI</div>
 
@@ -518,47 +425,6 @@ export default function Home() {
             {loading ? "⚙️ Building..." : "✨ Build Website"}
           </button>
 
-          {loading && (
-            <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/80 p-4 text-sm">
-              <div className="mb-3 flex items-center gap-2 text-white">
-                <span className="animate-pulse">⚒️</span>
-                <span>ForgeAI is building your website...</span>
-              </div>
-
-              <div className="space-y-2 text-zinc-400">
-                {[
-                  "Analyzing your idea",
-                  "Planning the layout",
-                  "Designing the interface",
-                  "Writing the website",
-                  "Preparing live preview",
-                ].map((stage, index) => {
-                  const stageNumber = index + 1;
-                  const complete = buildStage > stageNumber;
-                  const active = buildStage === stageNumber;
-
-                  return (
-                    <div
-                      key={stage}
-                      className={`flex items-center gap-3 transition-colors ${
-                        complete
-                          ? "text-emerald-400"
-                          : active
-                            ? "text-white"
-                            : "text-zinc-600"
-                      }`}
-                    >
-                      <span className="w-5 text-center">
-                        {complete ? "✓" : active ? "●" : "○"}
-                      </span>
-                      <span>{stage}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {error && (
             <div className="mt-4 rounded-xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-300">
               ❌ {error}
@@ -639,6 +505,5 @@ export default function Home() {
         </section>
       </div>
     </main>
-    </>
   );
 }
