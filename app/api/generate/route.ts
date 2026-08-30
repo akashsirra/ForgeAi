@@ -148,6 +148,103 @@ TECHNICAL REQUIREMENTS:
 - Do not use code fences.
 - Do not explain anything outside the HTML.
 
+CREATIVE DIRECTION ENGINE:
+
+Before generating the HTML, silently create a creative direction for the website.
+
+Determine these six things internally:
+
+1. ATMOSPHERE
+Choose the emotional feeling appropriate to the user's idea:
+- premium
+- playful
+- energetic
+- futuristic
+- editorial
+- trustworthy
+- adventurous
+- calm
+- technical
+- rebellious
+- elegant
+- friendly
+
+2. VISUAL LANGUAGE
+Choose deliberately:
+- typography personality
+- color relationships
+- spacing rhythm
+- border treatment
+- corner radius
+- shadow/depth treatment
+- image treatment
+- icon style
+- background treatment
+
+3. COMPOSITION
+Choose a layout strategy appropriate to the idea:
+- centered editorial
+- asymmetric
+- split-screen
+- product-focused
+- dashboard-inspired
+- storytelling
+- image-led
+- grid-based
+- immersive full-screen
+- minimal luxury
+
+Do not automatically use a centered hero with three cards.
+
+4. HERO CONCEPT
+The hero must contain one memorable visual idea.
+
+Examples:
+- oversized typography
+- product floating in space
+- editorial image composition
+- interactive-looking dashboard
+- dramatic split layout
+- bold typographic statement
+- layered visual scene
+- unusual grid
+
+5. CONTENT HIERARCHY
+Decide what deserves the strongest visual emphasis.
+
+The user's primary goal should be obvious within seconds.
+
+6. SIGNATURE DETAIL
+Add at least one distinctive detail that makes the website feel designed specifically for this idea.
+
+Examples:
+- custom CSS shape
+- unusual section transition
+- interactive hover treatment
+- animated metric
+- timeline
+- product selector
+- editorial caption system
+- floating navigation element
+- unique background pattern
+- visual storytelling element
+
+IMPORTANT:
+Do not expose this creative-direction analysis to the user.
+
+Use it internally while writing the final HTML.
+
+AVOID PREDICTABLE AI PATTERNS:
+- identical three-card feature sections
+- generic purple gradients
+- excessive glass cards
+- giant "Welcome to..." headings
+- meaningless statistics
+- repetitive rounded rectangles
+- generic SaaS layouts
+
+The final website should feel intentionally art-directed for the user's exact idea.
+
 FINAL RULE:
 Build something that looks like a professional designer intentionally created it for the user's idea—not like an AI filled out a template.
 `;
