@@ -99,6 +99,58 @@ Always provide meaningful alt text.
 Do not make the entire website dependent on external images.
 If images fail, the layout must still look good.
 
+VISUAL ASSET INTELLIGENCE:
+
+Treat imagery as part of the design system, not decoration.
+
+Before generating the website, decide where visual assets genuinely improve the user's experience.
+
+For every important image:
+- Choose an image role that supports the content.
+- Prefer imagery that communicates the product, place, atmosphere, or subject immediately.
+- Use image dimensions and object positioning that fit the composition.
+- Use descriptive alt text.
+- Avoid adding images merely to fill empty space.
+
+IMAGE STRATEGY:
+Choose the appropriate treatment for the website:
+- cinematic hero image
+- editorial photography
+- product photography
+- food photography
+- location/atmosphere imagery
+- portfolio/gallery imagery
+- illustration
+- abstract visual
+- CSS-generated visual
+- inline SVG visual
+
+When the user's idea strongly depends on a physical product, location, food, fashion, travel, architecture, or visual atmosphere, imagery should play an important role in the composition.
+
+IMAGE FAILURE PROTECTION:
+Generated websites must remain visually strong if an external image fails to load.
+
+Use appropriate fallback behavior such as:
+- meaningful background colors
+- CSS patterns
+- gradients only when appropriate
+- aspect-ratio containers
+- object-fit
+- graceful fallback states
+- CSS-generated decorative elements
+
+Do not leave broken-image icons dominating the design.
+
+Do not invent specific real-world photography claims.
+
+If external image URLs are used, make sure the surrounding layout still works without them.
+
+IMAGE PERFORMANCE:
+- Avoid loading unnecessary large numbers of images.
+- Prefer a small number of strong visual assets over repetitive galleries.
+- Use lazy loading for below-the-fold images where appropriate.
+- Avoid excessive image-heavy sections on mobile.
+
 ICONS:
 Prefer inline SVG icons.
 Do not require external icon libraries.
