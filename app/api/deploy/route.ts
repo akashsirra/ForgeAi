@@ -2,7 +2,23 @@ import { NextResponse } from "next/server";
 import { adminAuth } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
-const VERCEL_PROJECT_ID = "prj_P3VEGwzhfCNVTo4bYYQrls4A7D4k";
+const VERCEL_TEAM_ID = "team_MCx5QrX33yJ4QTfXvvnmiDQE";
+const DEPLOY_PROJECT_NAME = "forgeai-sites";
+
+async function vercelRequest(
+  path: string,
+  token: string,
+  options: RequestInit = {}
+) {
+  return fetch(`${VERCEL_API}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+}
 
 export async function POST(req: Request) {
   try {
@@ -24,10 +40,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const idToken = authHeader.slice(7);
-
     try {
-      await adminAuth.verifyIdToken(idToken);
+      await adminAuth.verifyIdToken(authHeader.slice(7));
     } catch {
       return NextResponse.json(
         { error: "Invalid or expired authentication token." },
@@ -45,50 +59,114 @@ export async function POST(req: Request) {
       );
     }
 
-    const deployment = await fetch(
-      `${VERCEL_API}/v13/deployments?teamId=team_MCx5QrX33yJ4QTfXvvnmiDQE&skipAutoDetectionConfirmation=1&forceNew=1`,
-      {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "forgeai-site",
-        project: VERCEL_PROJECT_ID,
-        target: "production",
-        files: [
+    // Find the dedicated generated-sites project.
+    let projectResponse = await vercelRequest(
+      `/v9/projects/${encodeURIComponent(DEPLOY_PROJECT_NAME)}?teamId=${VERCEL_TEAM_ID}`,
+      token
+    );
+
+    let project: any;
+
+    if (projectResponse.ok) {
+      project = await projectResponse.json();
+    } else if (projectResponse.status === 404) {
+      // Create the generated-sites project as a static/no-framework project.
+      projectResponse = await vercelRequest(
+        `/v9/projects?teamId=${VERCEL_TEAM_ID}`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: DEPLOY_PROJECT_NAME,
+            framework: null,
+          }),
+        }
+      );
+
+      const projectText = await projectResponse.text();
+
+      if (!projectResponse.ok) {
+        let errorData: any = null;
+        try {
+          errorData = JSON.parse(projectText);
+        } catch {}
+
+        return NextResponse.json(
           {
-            file: "index.html",
-            data: html,
+            error:
+              errorData?.error?.message ||
+              `Unable to create deployment project (${projectResponse.status}).`,
           },
-        ],
-      }),
-    });
+          { status: projectResponse.status }
+        );
+      }
 
-    const text = await deployment.text();
-
-    let data: any;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
+      project = JSON.parse(projectText);
+    } else {
+      const text = await projectResponse.text();
       return NextResponse.json(
-        { error: `Vercel returned an invalid response (${deployment.status}).` },
+        {
+          error: `Unable to access Vercel project (${projectResponse.status}).`,
+          details: text.slice(0, 500),
+        },
+        { status: projectResponse.status }
+      );
+    }
+
+    const projectId = project?.id;
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: "Vercel deployment project ID was not returned." },
         { status: 502 }
       );
     }
 
-    if (!deployment.ok) {
+    // Deploy the generated HTML to the dedicated static project.
+    const deploymentResponse = await vercelRequest(
+      `/v13/deployments?teamId=${VERCEL_TEAM_ID}&skipAutoDetectionConfirmation=1&forceNew=1`,
+      token,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: DEPLOY_PROJECT_NAME,
+          project: projectId,
+          target: "production",
+          files: [
+            {
+              file: "index.html",
+              data: html,
+            },
+          ],
+        }),
+      }
+    );
+
+    const deploymentText = await deploymentResponse.text();
+
+    let data: any;
+    try {
+      data = JSON.parse(deploymentText);
+    } catch {
+      return NextResponse.json(
+        {
+          error: `Vercel returned an invalid response (${deploymentResponse.status}).`,
+          details: deploymentText.slice(0, 500),
+        },
+        { status: 502 }
+      );
+    }
+
+    if (!deploymentResponse.ok) {
       console.error("Vercel deployment failed:", data);
 
       return NextResponse.json(
         {
           error:
             data?.error?.message ||
-            `Vercel deployment failed (${deployment.status}).`,
+            `Vercel deployment failed (${deploymentResponse.status}).`,
         },
-        { status: deployment.status }
+        { status: deploymentResponse.status }
       );
     }
 
@@ -97,6 +175,7 @@ export async function POST(req: Request) {
       url: data.url ? `https://${data.url}` : null,
       deploymentId: data.id || null,
       readyState: data.readyState || data.status || null,
+      projectId,
     });
   } catch (error) {
     console.error("DEPLOY API ERROR:", error);
