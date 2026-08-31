@@ -45,7 +45,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const deployment = await fetch(`${VERCEL_API}/v13/deployments`, {
+    const deployment = await fetch(
+      `${VERCEL_API}/v13/deployments?teamId=team_MCx5QrX33yJ4QTfXvvnmiDQE&skipAutoDetectionConfirmation=1&forceNew=1`,
+      {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -55,7 +57,6 @@ export async function POST(req: Request) {
         name: "forgeai-site",
         project: VERCEL_PROJECT_ID,
         target: "production",
-        builds: [],
         files: [
           {
             file: "index.html",
