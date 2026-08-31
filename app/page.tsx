@@ -269,6 +269,13 @@ export default function Home() {
         throw new Error("Deployment succeeded but no URL was returned.");
       }
 
+      if (currentProjectId) {
+        await updateDoc(doc(db, "projects", currentProjectId), {
+          deploymentUrl: data.url,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
       window.open(data.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error(err);
