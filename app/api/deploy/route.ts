@@ -3,7 +3,7 @@ import { adminAuth } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
 const VERCEL_TEAM_ID = "team_MCx5QrX33yJ4QTfXvvnmiDQE";
-const VERCEL_PROJECT_ID = "prj_P3VEGwzhfCNVTo4bYYQrls4A7D4k";
+const VERCEL_PROJECT_ID = "prj_iurYnOGELWJYOZyW06DF6aHcCW4k";
 
 async function vercelRequest(
   path: string,
