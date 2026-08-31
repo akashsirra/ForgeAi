@@ -266,8 +266,11 @@ export default function Home() {
         throw new Error(data.error || "Deployment failed.");
       }
 
-      if (!data.url) {
-        throw new Error("Deployment succeeded but no URL was returned.");
+      if (!data.success || !data.url) {
+        throw new Error(
+          data.error ||
+          "Deployment was accepted but no website URL was returned."
+        );
       }
 
       if (currentProjectId) {
@@ -292,7 +295,8 @@ export default function Home() {
         setCurrentProjectId(newProject.id);
       }
 
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      // Open only after the deployment API has explicitly succeeded.
+      window.location.href = data.url;
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Deployment failed.");
