@@ -274,6 +274,21 @@ export default function Home() {
           deploymentUrl: data.url,
           updatedAt: new Date().toISOString(),
         });
+      } else {
+        const name =
+          prompt.trim().slice(0, 40) || "Untitled ForgeAI Project";
+
+        const newProject = await addDoc(collection(db, "projects"), {
+          name,
+          prompt,
+          html,
+          userId: user.uid,
+          deploymentUrl: data.url,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        setCurrentProjectId(newProject.id);
       }
 
       window.open(data.url, "_blank", "noopener,noreferrer");
