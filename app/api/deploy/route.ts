@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
     // Deploy the generated HTML to the dedicated static project.
     const deploymentResponse = await vercelRequest(
-      `/v13/deployments?teamId=${VERCEL_TEAM_ID}&skipAutoDetectionConfirmation=1&forceNew=1`,
+      `/v13/deployments?skipAutoDetectionConfirmation=1&forceNew=1`,
       token,
       {
         method: "POST",
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
         const statusResponse = await vercelRequest(
-          `/v13/deployments/${encodeURIComponent(data.id)}?teamId=${VERCEL_TEAM_ID}`,
+          `/v13/deployments/${encodeURIComponent(data.id)}`,
           token
         );
 
