@@ -479,7 +479,9 @@ export default function Home() {
           )}
 
           <button
-            onClick={() => setShowProjects(!showProjects)}
+            onClick={() => {
+              window.location.href = "/projects";
+            }}
             className="rounded-lg border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-900"
           >
             📁 Projects
