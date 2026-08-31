@@ -109,9 +109,50 @@ export async function POST(req: Request) {
       );
     }
 
+    let deploymentUrl = data.url ? `https://${data.url}` : null;
+
+    // Vercel may return the deployment before its URL is populated.
+    // Poll briefly until the deployment has a URL or reaches a terminal state.
+    if (!deploymentUrl && data.id) {
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const statusResponse = await vercelRequest(
+          `/v13/deployments/${encodeURIComponent(data.id)}?teamId=${VERCEL_TEAM_ID}`,
+          token
+        );
+
+        if (!statusResponse.ok) continue;
+
+        const statusData = await statusResponse.json();
+
+        if (statusData.url) {
+          deploymentUrl = `https://${statusData.url}`;
+          data = statusData;
+          break;
+        }
+
+        if (["ERROR", "CANCELED"].includes(statusData.readyState)) {
+          data = statusData;
+          break;
+        }
+      }
+    }
+
+    if (!deploymentUrl) {
+      return NextResponse.json(
+        {
+          error: "Vercel accepted the deployment but did not return a usable URL yet.",
+          deploymentId: data.id || null,
+          readyState: data.readyState || data.status || null,
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      url: data.url ? `https://${data.url}` : null,
+      url: deploymentUrl,
       deploymentId: data.id || null,
       readyState: data.readyState || data.status || null,
       projectId,
