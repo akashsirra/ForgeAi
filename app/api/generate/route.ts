@@ -345,7 +345,7 @@ Build something that looks like a professional designer intentionally created it
 
 const MODELS = [
   "openai/gpt-oss-120b",
-  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-20b",
 ];
 
 function cleanHtml(text: string) {
@@ -440,6 +440,7 @@ export async function POST(req: Request) {
 
         const result = await generateText({
           model: groq(model),
+          maxOutputTokens: 6000,
           system: SYSTEM_PROMPT,
           prompt,
         });
@@ -473,7 +474,7 @@ export async function POST(req: Request) {
     return Response.json(
       {
         error:
-          "All ForgeAI models are currently unavailable. Please try again.",
+          "ForgeAI generation failed. Check the model error below.",
         details:
           lastError instanceof Error ? lastError.message : undefined,
       },
