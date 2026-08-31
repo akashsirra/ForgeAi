@@ -71,7 +71,6 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           name: "forgeai",
           project: projectId,
-          target: "production",
           files: [
             {
               file: "index.html",
