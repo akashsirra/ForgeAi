@@ -20,6 +20,7 @@ type Project = {
   html: string;
   createdAt: string;
   userId: string;
+  deploymentUrl?: string;
 };
 
 export default function ProjectsPage() {
@@ -202,8 +203,14 @@ export default function ProjectsPage() {
                   {project.prompt}
                 </p>
 
-                <div className="mt-4 text-xs text-zinc-600">
-                  {new Date(project.createdAt).toLocaleString()}
+                <div className="mt-4 flex items-center justify-between text-xs">
+                  <span className="text-zinc-600">
+                    {new Date(project.createdAt).toLocaleString()}
+                  </span>
+
+                  {project.deploymentUrl && (
+                    <span className="text-emerald-400">● Live</span>
+                  )}
                 </div>
 
                 <div className="mt-4 flex gap-2">
@@ -211,8 +218,17 @@ export default function ProjectsPage() {
                     onClick={() => openProject(project)}
                     className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-black"
                   >
-                    ✏️ Open
+                    ✏️ Edit
                   </button>
+
+                  {project.deploymentUrl && (
+                    <button
+                      onClick={() => window.open(project.deploymentUrl, "_blank")}
+                      className="rounded-lg border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800"
+                    >
+                      🌐
+                    </button>
+                  )}
 
                   <button
                     onClick={() => deleteProject(project.id)}
