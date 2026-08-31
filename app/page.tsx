@@ -21,6 +21,7 @@ type Project = {
   html: string;
   createdAt: string;
   userId: string;
+  deploymentUrl?: string;
 };
 
 export default function Home() {
