@@ -186,13 +186,13 @@ export default function ProjectsPage() {
                 key={project.id}
                 className="group rounded-2xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-zinc-600"
               >
-                <div className="mb-4 h-32 overflow-hidden rounded-xl border border-zinc-800 bg-white">
-                  <iframe
-                    srcDoc={project.html}
-                    title={`${project.name} preview`}
-                    sandbox=""
-                    className="pointer-events-none h-[640px] w-[1000px] origin-top-left scale-[0.32]"
-                  />
+                <div className="mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-zinc-950">
+                  <div className="text-center">
+                    <div className="text-4xl">🌐</div>
+                    <div className="mt-2 text-xs text-zinc-600">
+                      Website Preview
+                    </div>
+                  </div>
                 </div>
 
                 <h2 className="truncate font-semibold">
