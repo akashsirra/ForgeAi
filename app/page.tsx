@@ -369,6 +369,15 @@ export default function Home() {
         <div className="text-xl font-bold">⚒️ ForgeAI</div>
 
         <div className="flex items-center gap-2">
+          <a
+            href="https://buymeacoffee.com/Ashu13"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+          >
+            ☕ Support
+          </a>
+
           {user && (
             <span className="hidden max-w-40 truncate text-xs text-zinc-500 sm:block">
               {user.email}
