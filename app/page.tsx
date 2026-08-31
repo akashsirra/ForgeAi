@@ -552,7 +552,12 @@ export default function Home() {
                     onClick={() => loadProject(project)}
                     className="w-full text-left"
                   >
-                    <div className="font-medium">{project.name}</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="truncate font-medium">{project.name}</div>
+                      {project.deploymentUrl && (
+                        <span className="shrink-0 text-xs text-emerald-400">🌍 Live</span>
+                      )}
+                    </div>
                     <div className="mt-1 text-xs text-zinc-600">
                       {new Date(project.createdAt).toLocaleString()}
                     </div>
