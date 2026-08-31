@@ -234,6 +234,48 @@ export default function Home() {
     }
   }
 
+  async function deploy() {
+    if (!html) {
+      setError("Build a website before deploying.");
+      return;
+    }
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      setError("");
+
+      const idToken = await user.getIdToken();
+
+      const res = await fetch("/api/deploy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ html }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Deployment failed.");
+      }
+
+      if (!data.url) {
+        throw new Error("Deployment succeeded but no URL was returned.");
+      }
+
+      window.open(data.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Deployment failed.");
+    }
+  }
+
   async function edit() {
     if (!html || !instruction.trim()) return;
 
@@ -438,7 +480,11 @@ export default function Home() {
             </button>
           )}
 
-          <button className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black">
+          <button
+            onClick={deploy}
+            disabled={!html}
+            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-40"
+          >
             🚀 Deploy
           </button>
         </div>
