@@ -180,62 +180,72 @@ export default function ProjectsPage() {
             No projects match your search.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="group rounded-2xl border border-zinc-800 bg-zinc-900 p-5 transition hover:border-zinc-600"
+                className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-zinc-600 hover:shadow-2xl"
               >
-                <div className="mb-4 h-32 overflow-hidden rounded-xl border border-zinc-800 bg-white">
+                <div className="relative h-44 overflow-hidden border-b border-zinc-800 bg-white">
                   <iframe
                     srcDoc={project.html}
                     title={`${project.name} preview`}
                     sandbox=""
-                    className="pointer-events-none h-[640px] w-[1000px] origin-top-left scale-[0.32]"
+                    className="pointer-events-none h-[700px] w-[1100px] origin-top-left scale-[0.4]"
                   />
-                </div>
-
-                <h2 className="truncate font-semibold">
-                  {project.name}
-                </h2>
-
-                <p className="mt-2 line-clamp-2 text-sm text-zinc-500">
-                  {project.prompt}
-                </p>
-
-                <div className="mt-4 flex items-center justify-between text-xs">
-                  <span className="text-zinc-600">
-                    {new Date(project.createdAt).toLocaleString()}
-                  </span>
 
                   {project.deploymentUrl && (
-                    <span className="text-emerald-400">● Live</span>
+                    <div className="absolute right-3 top-3 rounded-full border border-emerald-500/30 bg-zinc-950/90 px-3 py-1 text-xs font-semibold text-emerald-400 shadow-lg">
+                      🌍 LIVE
+                    </div>
                   )}
                 </div>
 
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => openProject(project)}
-                    className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-black"
-                  >
-                    ✏️ Edit
-                  </button>
+                <div className="p-5">
+                  <h2 className="truncate text-lg font-semibold text-white">
+                    {project.name}
+                  </h2>
 
-                  {project.deploymentUrl && (
+                  <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-zinc-500">
+                    {project.prompt}
+                  </p>
+
+                  <div className="mt-4 text-xs text-zinc-600">
+                    Created {new Date(project.createdAt).toLocaleString()}
+                  </div>
+
+                  <div className="mt-5 flex gap-2">
                     <button
-                      onClick={() => window.open(project.deploymentUrl, "_blank")}
-                      className="rounded-lg border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800"
+                      onClick={() => openProject(project)}
+                      className="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
                     >
-                      🌐
+                      ✏️ Edit
                     </button>
-                  )}
 
-                  <button
-                    onClick={() => deleteProject(project.id)}
-                    className="rounded-lg border border-red-900 px-3 py-2 text-sm text-red-400 hover:bg-red-950/30"
-                  >
-                    🗑️
-                  </button>
+                    {project.deploymentUrl && (
+                      <button
+                        onClick={() =>
+                          window.open(
+                            project.deploymentUrl,
+                            "_blank",
+                            "noopener,noreferrer"
+                          )
+                        }
+                        className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm transition hover:bg-zinc-800"
+                        title="Open live website"
+                      >
+                        🌐
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => deleteProject(project.id)}
+                      className="rounded-xl border border-red-900/60 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-950/40"
+                      title="Delete project"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
