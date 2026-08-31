@@ -3,7 +3,7 @@ import { adminAuth } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
 const VERCEL_TEAM_ID = "team_MCx5QrX33yJ4QTfXvvnmiDQE";
-const DEPLOY_PROJECT_NAME = "forgeai-sites";
+const VERCEL_PROJECT_ID = "prj_P3VEGwzhfCNVTo4bYYQrls4A7D4k";
 
 async function vercelRequest(
   path: string,
@@ -59,68 +59,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Find the dedicated generated-sites project.
-    let projectResponse = await vercelRequest(
-      `/v9/projects/${encodeURIComponent(DEPLOY_PROJECT_NAME)}?teamId=${VERCEL_TEAM_ID}`,
-      token
-    );
-
-    let project: any;
-
-    if (projectResponse.ok) {
-      project = await projectResponse.json();
-    } else if (projectResponse.status === 404) {
-      // Create the generated-sites project as a static/no-framework project.
-      projectResponse = await vercelRequest(
-        `/v9/projects?teamId=${VERCEL_TEAM_ID}`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            name: DEPLOY_PROJECT_NAME,
-            framework: null,
-          }),
-        }
-      );
-
-      const projectText = await projectResponse.text();
-
-      if (!projectResponse.ok) {
-        let errorData: any = null;
-        try {
-          errorData = JSON.parse(projectText);
-        } catch {}
-
-        return NextResponse.json(
-          {
-            error:
-              errorData?.error?.message ||
-              `Unable to create deployment project (${projectResponse.status}).`,
-          },
-          { status: projectResponse.status }
-        );
-      }
-
-      project = JSON.parse(projectText);
-    } else {
-      const text = await projectResponse.text();
-      return NextResponse.json(
-        {
-          error: `Unable to access Vercel project (${projectResponse.status}).`,
-          details: text.slice(0, 500),
-        },
-        { status: projectResponse.status }
-      );
-    }
-
-    const projectId = project?.id;
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: "Vercel deployment project ID was not returned." },
-        { status: 502 }
-      );
-    }
+    // Deploy directly to the existing ForgeAI Vercel project.
+    const projectId = VERCEL_PROJECT_ID;
 
     // Deploy the generated HTML to the dedicated static project.
     const deploymentResponse = await vercelRequest(
@@ -129,7 +69,7 @@ export async function POST(req: Request) {
       {
         method: "POST",
         body: JSON.stringify({
-          name: DEPLOY_PROJECT_NAME,
+          name: "forgeai",
           project: projectId,
           target: "production",
           files: [
