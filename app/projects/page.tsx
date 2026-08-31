@@ -208,9 +208,9 @@ export default function ProjectsPage() {
                     {new Date(project.createdAt).toLocaleString()}
                   </span>
 
-                  <span className="text-zinc-500">
-                    {project.deploymentUrl || "NO DEPLOYMENT URL"}
-                  </span>
+                  {project.deploymentUrl && (
+                    <span className="text-emerald-400">● Live</span>
+                  )}
                 </div>
 
                 <div className="mt-4 flex gap-2">

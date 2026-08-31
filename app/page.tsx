@@ -135,7 +135,6 @@ export default function Home() {
 
     try {
       if (currentProjectId) {
-        alert("UPDATING PROJECT: " + currentProjectId);
         await updateDoc(doc(db, "projects", currentProjectId), {
           name,
           prompt,
@@ -261,7 +260,6 @@ export default function Home() {
       });
 
       const data = await res.json();
-      console.log("FORGEAI DEPLOY RESPONSE:", data); alert("DEPLOY RESPONSE: " + JSON.stringify(data));
 
       if (!res.ok) {
         throw new Error(data.error || "Deployment failed.");
