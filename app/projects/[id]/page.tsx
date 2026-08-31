@@ -118,6 +118,12 @@ export default function ProjectWorkspace() {
         throw new Error("AI returned no updated website.");
       }
 
+      if (data.html.trim() === project.html.trim()) {
+        throw new Error(
+          "ForgeAI returned the same website. Try a more specific editing instruction."
+        );
+      }
+
       // IMPORTANT:
       // Update the local preview FIRST.
       // The AI result must remain visible even if Firestore is offline.
@@ -302,12 +308,12 @@ export default function ProjectWorkspace() {
         <section className="min-w-0 bg-zinc-900 p-3 sm:p-5">
           <div className="h-full min-h-[70vh] overflow-hidden rounded-2xl border border-zinc-800 bg-white shadow-2xl">
             <iframe
-                key={`${project.id}-${previewKey}`}
-                srcDoc={project.html}
-                title={`${project.name} preview`}
-                sandbox=""
-                className="h-full w-full border-0"
-              />
+              key={`${project.id}-${previewKey}`}
+              srcDoc={project.html}
+              title={`${project.name} preview`}
+              sandbox="allow-scripts allow-forms allow-modals allow-popups"
+              className="h-full w-full border-0"
+            />
           </div>
         </section>
       </div>
