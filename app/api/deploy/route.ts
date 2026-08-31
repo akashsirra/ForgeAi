@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         name: "forgeai-site",
         project: VERCEL_PROJECT_ID,
         target: "production",
+        builds: [],
         files: [
           {
             file: "index.html",
