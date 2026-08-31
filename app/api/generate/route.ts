@@ -31,8 +31,8 @@ Rules:
 
 
 const MODELS = [
-  "openai/gpt-oss-120b",
   "openai/gpt-oss-20b",
+  "openai/gpt-oss-120b",
 ];
 
 function cleanHtml(text: string) {
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
 
         const result = await generateText({
           model: groq(model),
-          maxOutputTokens: 6000,
+          maxOutputTokens: 4500,
           system: SYSTEM_PROMPT,
           prompt,
         });
