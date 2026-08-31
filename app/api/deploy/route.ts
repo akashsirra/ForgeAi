@@ -64,14 +64,27 @@ export async function POST(req: Request) {
       }),
     });
 
-    const data = await deployment.json();
+    const text = await deployment.text();
+
+    let data: any;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return NextResponse.json(
+        { error: `Vercel returned an invalid response (${deployment.status}).` },
+        { status: 502 }
+      );
+    }
 
     if (!deployment.ok) {
       console.error("Vercel deployment failed:", data);
 
       return NextResponse.json(
         {
-          error: data?.error?.message || "Vercel deployment failed.",
+          error:
+            data?.error?.message ||
+            `Vercel deployment failed (${deployment.status}).`,
         },
         { status: deployment.status }
       );
@@ -80,13 +93,19 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       url: data.url ? `https://${data.url}` : null,
-      deploymentId: data.id,
+      deploymentId: data.id || null,
+      readyState: data.readyState || data.status || null,
     });
   } catch (error) {
     console.error("DEPLOY API ERROR:", error);
 
     return NextResponse.json(
-      { error: "Unable to deploy the website." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to deploy the website.",
+      },
       { status: 500 }
     );
   }
