@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminAuth } from "../../../lib/firebase-admin";
+import { getAdminAuth } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
 const VERCEL_TEAM_ID = "team_MCx5QrX33yJ4QTfXvvnmiDQE";
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      await adminAuth.verifyIdToken(authHeader.slice(7));
+      await getAdminAuth().verifyIdToken(authHeader.slice(7));
     } catch {
       return NextResponse.json(
         { error: "Invalid or expired authentication token." },
