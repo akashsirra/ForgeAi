@@ -216,7 +216,7 @@ export default function ProjectsPage() {
 
                   <div className="mt-5 flex gap-2">
                     <button
-                      onClick={() => openProject(project)}
+                      onClick={() => router.push(`/projects/${project.id}`)}
                       className="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200"
                     >
                       ✏️ Edit
