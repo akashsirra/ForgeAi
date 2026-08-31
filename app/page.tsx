@@ -135,6 +135,7 @@ export default function Home() {
 
     try {
       if (currentProjectId) {
+        alert("UPDATING PROJECT: " + currentProjectId);
         await updateDoc(doc(db, "projects", currentProjectId), {
           name,
           prompt,
