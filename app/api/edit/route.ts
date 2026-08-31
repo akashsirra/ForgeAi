@@ -76,6 +76,8 @@ ${instruction}
 
         if (updatedHtml && updatedHtml.toLowerCase().includes("<html")) {
           console.log(`ForgeAI edit success: ${model}`);
+          console.log("FORGEAI EDIT HTML START:", updatedHtml.slice(0, 1200));
+          console.log("FORGEAI EDIT HTML LENGTH:", updatedHtml.length);
 
           return Response.json({
             html: updatedHtml,

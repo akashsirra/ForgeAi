@@ -26,10 +26,14 @@ export default function ProjectWorkspace() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [previewKey, setPreviewKey] = useState(0);
   const [instruction, setInstruction] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       try {
         const user = auth.currentUser;
@@ -54,10 +58,12 @@ export default function ProjectWorkspace() {
           return;
         }
 
-        setProject({
-          id: snap.id,
-          ...data,
-        } as Project);
+        if (!cancelled) {
+          setProject({
+            id: snap.id,
+            ...data,
+          } as Project);
+        }
       } catch (err) {
         console.error(err);
         setError("Could not load project.");
@@ -67,7 +73,95 @@ export default function ProjectWorkspace() {
     }
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params.id, router]);
+
+  async function improveWebsite() {
+    if (!project || !instruction.trim()) return;
+
+    try {
+      setEditing(true);
+      setError("");
+
+      const user = auth.currentUser;
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const idToken = await user.getIdToken();
+
+      const res = await fetch("/api/edit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          html: project.html,
+          instruction: instruction.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      console.log("FORGEAI EDIT RESPONSE:", data);
+
+      if (!res.ok) {
+        throw new Error(data.error || "AI editing failed.");
+      }
+
+      if (!data.html) {
+        throw new Error("AI returned no updated website.");
+      }
+
+      // IMPORTANT:
+      // Update the local preview FIRST.
+      // The AI result must remain visible even if Firestore is offline.
+      setProject((current) =>
+        current
+          ? {
+              ...current,
+              html: data.html,
+            }
+          : current
+      );
+
+      // Force iframe to reload the new HTML.
+      setPreviewKey((key) => key + 1);
+
+      setInstruction("");
+
+      // Save to Firestore separately.
+      // A Firestore outage must NOT make the successful AI edit look like a failure.
+      try {
+        await updateDoc(doc(db, "projects", project.id), {
+          html: data.html,
+          updatedAt: new Date().toISOString(),
+        });
+
+        console.log("✓ ForgeAI edit saved to Firestore");
+      } catch (saveError) {
+        console.warn(
+          "⚠️ AI edit succeeded, but Firestore could not save right now:",
+          saveError
+        );
+      }
+    } catch (err) {
+      console.error("ForgeAI edit error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not improve the website."
+      );
+    } finally {
+      setEditing(false);
+    }
+  }
 
   async function saveProject() {
     if (!project) return;
@@ -169,15 +263,24 @@ export default function ProjectWorkspace() {
           />
 
           <button
-            onClick={() => {
-              setInstruction("");
-              alert("🚀 AI editing is the next ForgeAI upgrade!");
-            }}
-            disabled={!instruction.trim()}
+            onClick={improveWebsite}
+            disabled={!instruction.trim() || editing}
             className="mt-3 w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            ✨ Improve Website
+            {editing ? "🤖 Improving..." : "✨ Improve Website"}
           </button>
+
+          {error && (
+            <div className="mt-3 rounded-xl border border-red-900/50 bg-red-950/20 p-3 text-xs text-red-400">
+              {error}
+            </div>
+          )}
+
+          {editing && (
+            <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-xs text-zinc-400">
+              🤖 ForgeAI is updating your website...
+            </div>
+          )}
 
           <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
             <div className="text-xs font-semibold text-zinc-400">
@@ -199,11 +302,12 @@ export default function ProjectWorkspace() {
         <section className="min-w-0 bg-zinc-900 p-3 sm:p-5">
           <div className="h-full min-h-[70vh] overflow-hidden rounded-2xl border border-zinc-800 bg-white shadow-2xl">
             <iframe
-              srcDoc={project.html}
-              title={`${project.name} live preview`}
-              sandbox=""
-              className="h-full min-h-[70vh] w-full border-0"
-            />
+                key={`${project.id}-${previewKey}`}
+                srcDoc={project.html}
+                title={`${project.name} preview`}
+                sandbox=""
+                className="h-full w-full border-0"
+              />
           </div>
         </section>
       </div>
