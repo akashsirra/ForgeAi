@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { adminAuth } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
-const VERCEL_PROJECT_ID = "prj_P3VEGwzhfCNVTo4bYYQrls4A7D4k";
+const VERCEL_PROJECT_ID = "prj_DQdfI01F8qNsj1eYqNq2YvpNzbEv";
 
 export async function POST(req: Request) {
   try {
