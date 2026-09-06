@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth } from "../../../lib/firebase-admin";
+import { getAdminAuth, getAdminDb } from "../../../lib/firebase-admin";
 
 const VERCEL_API = "https://api.vercel.com";
 const MAX_HTML_BYTES = 2_000_000;
@@ -36,12 +36,41 @@ function getConfiguredVercelPath(path: string) {
   return `${path}${separator}teamId=${encodeURIComponent(teamId)}`;
 }
 
+function makeProjectSlug(name: string, projectId: string) {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+
+  return `${base || "forgeai-site"}-${projectId.slice(0, 6)}`;
+}
+
+async function updateDeploymentRecord(
+  projectId: string,
+  values: Record<string, unknown>
+) {
+  try {
+    await getAdminDb().collection("projects").doc(projectId).update({
+      ...values,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Could not update deployment metadata:", {
+      projectId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
 export async function POST(req: Request) {
+  let projectId: string | null = null;
+
   try {
     const token = process.env.VERCEL_TOKEN;
-    const projectId = process.env.VERCEL_PROJECT_ID;
+    const configuredProjectId = process.env.VERCEL_PROJECT_ID;
 
-    if (!token || !projectId) {
+    if (!token || !configuredProjectId) {
       return NextResponse.json(
         { error: "Deployment service is not configured." },
         { status: 500 }
@@ -57,8 +86,9 @@ export async function POST(req: Request) {
       );
     }
 
+    let decodedToken;
     try {
-      await getAdminAuth().verifyIdToken(authHeader.slice(7));
+      decodedToken = await getAdminAuth().verifyIdToken(authHeader.slice(7));
     } catch {
       return NextResponse.json(
         { error: "Invalid or expired authentication token." },
@@ -76,10 +106,21 @@ export async function POST(req: Request) {
       );
     }
 
-    const html =
-      typeof body === "object" && body !== null && "html" in body
-        ? (body as { html?: unknown }).html
-        : undefined;
+    const requestData =
+      typeof body === "object" && body !== null
+        ? (body as { html?: unknown; projectId?: unknown })
+        : {};
+
+    const html = requestData.html;
+    projectId =
+      typeof requestData.projectId === "string" ? requestData.projectId : null;
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: "A project is required before deployment." },
+        { status: 400 }
+      );
+    }
 
     if (typeof html !== "string" || !html.trim()) {
       return NextResponse.json(
@@ -95,6 +136,38 @@ export async function POST(req: Request) {
       );
     }
 
+    const projectRef = getAdminDb().collection("projects").doc(projectId);
+    const projectSnapshot = await projectRef.get();
+
+    if (!projectSnapshot.exists) {
+      return NextResponse.json(
+        { error: "Project not found." },
+        { status: 404 }
+      );
+    }
+
+    const project = projectSnapshot.data();
+
+    if (project?.userId !== decodedToken.uid) {
+      return NextResponse.json(
+        { error: "You do not have access to this project." },
+        { status: 403 }
+      );
+    }
+
+    const projectName =
+      typeof project.name === "string" ? project.name : "ForgeAI Site";
+    const projectSlug =
+      typeof project.slug === "string" && project.slug
+        ? project.slug
+        : makeProjectSlug(projectName, projectId);
+
+    await updateDeploymentRecord(projectId, {
+      slug: projectSlug,
+      deploymentStatus: "deploying",
+      deploymentError: null,
+    });
+
     const deploymentResponse = await vercelRequest(
       getConfiguredVercelPath(
         "/v13/deployments?skipAutoDetectionConfirmation=1&forceNew=1"
@@ -104,7 +177,7 @@ export async function POST(req: Request) {
         method: "POST",
         body: JSON.stringify({
           name: "forgeai",
-          project: projectId,
+          project: configuredProjectId,
           target: "production",
           files: [
             {
@@ -122,6 +195,11 @@ export async function POST(req: Request) {
     try {
       data = JSON.parse(deploymentText);
     } catch {
+      await updateDeploymentRecord(projectId, {
+        deploymentStatus: "failed",
+        deploymentError: "Vercel returned an invalid response.",
+      });
+
       return NextResponse.json(
         {
           error: `Vercel returned an invalid response (${deploymentResponse.status}).`,
@@ -131,20 +209,23 @@ export async function POST(req: Request) {
     }
 
     if (!deploymentResponse.ok) {
+      const message =
+        data?.error?.message ||
+        `Vercel deployment failed (${deploymentResponse.status}).`;
+
       console.error("Vercel deployment failed:", {
         status: deploymentResponse.status,
-        message: data?.error?.message,
+        message,
         code: data?.error?.code,
+        projectId,
       });
 
-      return NextResponse.json(
-        {
-          error:
-            data?.error?.message ||
-            `Vercel deployment failed (${deploymentResponse.status}).`,
-        },
-        { status: deploymentResponse.status }
-      );
+      await updateDeploymentRecord(projectId, {
+        deploymentStatus: "failed",
+        deploymentError: message,
+      });
+
+      return NextResponse.json({ error: message }, { status: deploymentResponse.status });
     }
 
     let deploymentUrl = data.url ? `https://${data.url}` : null;
@@ -178,12 +259,20 @@ export async function POST(req: Request) {
     }
 
     if (!deploymentUrl) {
+      const deploymentError =
+        data.readyState === "ERROR"
+          ? "Vercel failed to build the deployment."
+          : "Vercel accepted the deployment but did not return a usable URL yet.";
+
+      await updateDeploymentRecord(projectId, {
+        deploymentStatus: "failed",
+        deploymentId: data.id || null,
+        deploymentError,
+      });
+
       return NextResponse.json(
         {
-          error:
-            data.readyState === "ERROR"
-              ? "Vercel failed to build the deployment."
-              : "Vercel accepted the deployment but did not return a usable URL yet.",
+          error: deploymentError,
           deploymentId: data.id || null,
           readyState: data.readyState || data.status || null,
         },
@@ -191,18 +280,38 @@ export async function POST(req: Request) {
       );
     }
 
+    await updateDeploymentRecord(projectId, {
+      slug: projectSlug,
+      deploymentStatus: "live",
+      deploymentId: data.id || null,
+      deploymentUrl,
+      deploymentError: null,
+    });
+
     return NextResponse.json({
       success: true,
       url: deploymentUrl,
       deploymentId: data.id || null,
       readyState: data.readyState || data.status || null,
       projectId,
+      slug: projectSlug,
     });
   } catch (error) {
     console.error("DEPLOY API ERROR:", {
+      projectId,
       message: error instanceof Error ? error.message : "Unknown error",
       name: error instanceof Error ? error.name : undefined,
     });
+
+    if (projectId) {
+      await updateDeploymentRecord(projectId, {
+        deploymentStatus: "failed",
+        deploymentError:
+          error instanceof Error && error.name === "AbortError"
+            ? "Deployment service timed out."
+            : "Unable to deploy the website.",
+      });
+    }
 
     return NextResponse.json(
       {
