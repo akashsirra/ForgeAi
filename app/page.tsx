@@ -434,8 +434,28 @@ export default function Home() {
       )}
 
       <main className="min-h-screen bg-zinc-950 text-white">
-      <header className="flex h-16 items-center justify-between border-b border-zinc-800 px-5">
-        <div className="text-xl font-bold">⚒️ ForgeAI</div>
+      <header className="sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-white/10 bg-zinc-950/90 px-4 backdrop-blur-xl sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white text-lg text-black shadow-lg shadow-white/5">
+            ⚒️
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-base font-bold tracking-tight sm:text-lg">
+                ForgeAI
+              </span>
+              <span className="hidden rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-semibold tracking-[0.18em] text-zinc-500 sm:inline">
+                STUDIO
+              </span>
+            </div>
+
+            <div className="hidden items-center gap-1.5 text-[10px] text-zinc-600 sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>Ready to build</span>
+            </div>
+          </div>
+        </div>
 
         <div className="flex items-center gap-2">
           <a
@@ -585,24 +605,62 @@ export default function Home() {
 
       <div className="grid min-h-[calc(100vh-4rem)] md:grid-cols-2">
         <section className="border-b border-zinc-800 p-5 md:border-b-0 md:border-r">
-          <div className="mb-4">
-            <div className="text-sm text-zinc-400">🤖 AI Builder</div>
-            <p className="mt-1 text-xs text-zinc-600">
-              Describe what you want ForgeAI to build.
-            </p>
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-sm">
+                🤖
+              </span>
+
+              <div>
+                <div className="text-sm font-semibold text-zinc-100">
+                  AI Builder
+                </div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+                  Describe your vision
+                </div>
+              </div>
+            </div>
+
+            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-[10px] font-medium text-zinc-500">
+              GPT powered
+            </span>
           </div>
 
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Build a gaming community website..."
-            className="min-h-40 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-900 p-4 outline-none placeholder:text-zinc-600"
-          />
+          <div className="forge-prompt-shell">
+            <div className="forge-prompt-glow" />
+
+            <div className="relative">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-600">
+                  Your idea
+                </span>
+
+                <span className="text-[10px] text-zinc-700">
+                  {prompt.length}/2000
+                </span>
+              </div>
+
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value.slice(0, 2000))}
+                placeholder="What should ForgeAI build?"
+                className="min-h-44 w-full resize-none border-0 bg-transparent p-0 text-base leading-7 text-zinc-100 outline-none placeholder:text-zinc-700"
+              />
+
+              <div className="mt-5 flex items-center justify-between border-t border-zinc-800/80 pt-3">
+                <span className="text-[10px] text-zinc-700">
+                  Be as specific as you want
+                </span>
+
+                <span className="text-lg text-zinc-700">↗</span>
+              </div>
+            </div>
+          </div>
 
           <button
             onClick={build}
-            disabled={loading}
-            className="mt-3 w-full rounded-xl bg-white px-5 py-3 font-bold text-black disabled:opacity-50"
+            disabled={loading || !prompt.trim()}
+            className="forge-build-button mt-3 w-full rounded-xl bg-white px-5 py-3 font-bold text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loading ? "⚙️ Building..." : "✨ Build Website"}
           </button>
