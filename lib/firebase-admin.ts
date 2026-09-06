@@ -1,7 +1,12 @@
-import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { cert, getApps, getApp, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
-function getFirebaseAuth() {
+function getFirebaseApp() {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
@@ -10,20 +15,19 @@ function getFirebaseAuth() {
     throw new Error("Firebase Admin environment variables are not configured.");
   }
 
-  const app =
-    getApps().length === 0
-      ? initializeApp({
-          credential: cert({
-            projectId,
-            clientEmail,
-            privateKey,
-          }),
-        })
-      : getApps()[0];
-
-  return getAuth(app);
+  return initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  });
 }
 
 export function getAdminAuth() {
-  return getFirebaseAuth();
+  return getAuth(getFirebaseApp());
+}
+
+export function getAdminDb() {
+  return getFirestore(getFirebaseApp());
 }
