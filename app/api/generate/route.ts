@@ -72,20 +72,11 @@ function validateHtml(html: string) {
   if (!normalized.includes("<html")) errors.push("missing <html>");
   if (!normalized.includes("<head")) errors.push("missing <head>");
   if (!normalized.includes("<body")) errors.push("missing <body>");
-
-  if (
-    !normalized.includes('name="viewport"') &&
-    !normalized.includes("name='viewport'")
-  ) {
+  if (!normalized.includes('name="viewport"') && !normalized.includes("name='viewport'")) {
     errors.push("missing viewport metadata");
   }
-
   if (!normalized.includes("<style")) errors.push("missing <style>");
   if (normalized.includes("```")) errors.push("contains Markdown code fences");
-
-  if (/^\s*(here is|here's|sure|certainly)/i.test(html)) {
-    errors.push("contains explanatory text before HTML");
-  }
 
   const scriptOpen = (normalized.match(/<script\b/g) || []).length;
   const scriptClose = (normalized.match(/<\/script>/g) || []).length;
@@ -93,13 +84,15 @@ function validateHtml(html: string) {
 
   if (html.length < 1200) errors.push("HTML output is suspiciously small");
 
-  const hasResponsiveCss = /@media\s*\(/i.test(html);
-  if (!hasResponsiveCss) errors.push("missing responsive CSS media queries");
+  // Media queries are preferred, but fluid clamp/min/max and intrinsic
+  // layouts are also valid responsive strategies.
+  if (!/@media\s*\(/i.test(html) && !/\b(?:clamp|min|max)\s*\(/i.test(html)) {
+    errors.push("missing responsive CSS strategy");
+  }
 
   if (/min-width\s*:\s*\d{3,}px/i.test(html)) {
     errors.push("contains a potentially unsafe fixed minimum width");
   }
-
   if (/(?:width|min-width)\s*:\s*\d{4,}px/i.test(html)) {
     errors.push("contains an oversized fixed width");
   }
@@ -110,7 +103,7 @@ function validateHtml(html: string) {
 async function repairHtml(model: string, html: string, errors: string[]) {
   const result = await generateText({
     model: groq(model),
-    maxOutputTokens: 5000,
+    maxOutputTokens: 6500,
     system: REPAIR_PROMPT,
     prompt: `Quality-control failures:\n${errors.map((item) => `- ${item}`).join("\n")}\n\nHTML to repair:\n${html}`,
   });
@@ -126,16 +119,11 @@ export async function POST(req: Request) {
     if (!prompt || typeof prompt !== "string") {
       return Response.json({ error: "Please provide a prompt." }, { status: 400 });
     }
-
     if (prompt.length > 6000) {
       return Response.json({ error: "Prompt is too long. Keep it under 6000 characters." }, { status: 400 });
     }
-
     if (!process.env.GROQ_API_KEY) {
-      return Response.json(
-        { error: "GROQ_API_KEY is not available to the server." },
-        { status: 500 }
-      );
+      return Response.json({ error: "GROQ_API_KEY is not available to the server." }, { status: 500 });
     }
 
     let lastError: unknown = null;
@@ -146,29 +134,46 @@ export async function POST(req: Request) {
 
         const result = await generateText({
           model: groq(model),
-          maxOutputTokens: 4500,
+          maxOutputTokens: 6500,
           system: SYSTEM_PROMPT,
           prompt,
         });
 
-        let html = cleanHtml(result.text);
-        let quality = validateHtml(html);
+        const originalHtml = cleanHtml(result.text);
+        const originalQuality = validateHtml(originalHtml);
 
-        if (!quality.valid) {
-          console.warn(`ForgeAI quality repair required for ${model}:`, quality.errors);
-          html = await repairHtml(model, html, quality.errors);
-          quality = validateHtml(html);
+        if (originalQuality.valid) {
+          console.log(`ForgeAI success: ${model}`);
+          return Response.json({ html: originalHtml, model, qualityChecked: true });
         }
 
-        if (quality.valid) {
-          console.log(`ForgeAI success: ${model}`);
-          return Response.json({ html, model, qualityChecked: true });
+        console.warn(`ForgeAI quality repair required for ${model}:`, originalQuality.errors);
+
+        // Give repair enough output budget to return the entire document.
+        let repairedHtml = await repairHtml(model, originalHtml, originalQuality.errors);
+        let repairedQuality = validateHtml(repairedHtml);
+
+        if (!repairedQuality.valid) {
+          console.warn(`ForgeAI first repair still failed for ${model}:`, repairedQuality.errors);
+          repairedHtml = await repairHtml(model, repairedHtml || originalHtml, repairedQuality.errors);
+          repairedQuality = validateHtml(repairedHtml);
+        }
+
+        if (repairedQuality.valid) {
+          console.log(`ForgeAI success after quality repair: ${model}`);
+          return Response.json({ html: repairedHtml, model, qualityChecked: true });
+        }
+
+        // Do not turn a usable generation into a hard failure because the
+        // heuristic validator missed something. Keep it when it is substantial.
+        if (originalHtml.length >= 1200 && originalQuality.errors.length <= 2) {
+          console.warn(`ForgeAI keeping original generation after repair miss: ${model}`);
+          return Response.json({ html: originalHtml, model, qualityChecked: false });
         }
 
         lastError = new Error(
-          `${model} failed HTML quality control after repair: ${quality.errors.join(", ")}`
+          `${model} failed HTML quality control after repair: ${repairedQuality.errors.join(", ")}`
         );
-        console.error(`ForgeAI quality control rejected ${model}:`, quality.errors);
       } catch (error) {
         lastError = error;
         console.error(`ForgeAI ${model} failed:`, error);
@@ -177,7 +182,7 @@ export async function POST(req: Request) {
 
     return Response.json(
       {
-        error: "ForgeAI generation failed quality control. Try a more specific prompt.",
+        error: "ForgeAI could not produce a valid website this time. Please try again with a more specific prompt.",
         details: lastError instanceof Error ? lastError.message : undefined,
       },
       { status: 503 }
@@ -185,9 +190,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("FORGEAI API ERROR:", error);
     return Response.json(
-      {
-        error: error instanceof Error ? error.message : "AI generation failed.",
-      },
+      { error: error instanceof Error ? error.message : "AI generation failed." },
       { status: 500 }
     );
   }
