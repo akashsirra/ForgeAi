@@ -13,15 +13,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "ForgeAI — Build Websites With AI",
+  metadataBase: new URL(appUrl),
+  title: {
+    default: "ForgeAI — Build and Ship Websites With AI",
+    template: "%s | ForgeAI",
+  },
   description:
-    "ForgeAI turns your idea into a polished, responsive website and deploys it to the web.",
+    "Turn an idea into a polished responsive website, preview it, save it, and ship it to the web with ForgeAI.",
   applicationName: "ForgeAI",
-  keywords: ["AI website builder", "website generator", "AI web design", "ForgeAI"],
-  robots: {
-    index: true,
-    follow: true,
+  keywords: [
+    "AI website builder",
+    "AI website generator",
+    "website builder",
+    "AI web design",
+    "ForgeAI",
+  ],
+  authors: [{ name: "ForgeAI" }],
+  creator: "ForgeAI",
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: "ForgeAI",
+    title: "ForgeAI — Build and Ship Websites With AI",
+    description:
+      "Turn an idea into a polished responsive website and ship it to the web.",
+    url: appUrl,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ForgeAI — Build and Ship Websites With AI",
+    description:
+      "Turn an idea into a polished responsive website and ship it to the web.",
   },
 };
 
