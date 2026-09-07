@@ -72,6 +72,9 @@ export function validateHtml(html: string): SiteQuality {
 const IMAGE_FALLBACK =
   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3ClinearGradient id="g" x1="0" y1="0" x2="1" y2="1"%3E%3Cstop stop-color="%23151a1f"/%3E%3Cstop offset="1" stop-color="%233a3024"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="1200" height="800" fill="url(%23g)"/%3E%3Ccircle cx="600" cy="350" r="150" fill="%23c88745" opacity=".28"/%3E%3Cpath d="M360 560c80-140 180-210 240-210s160 70 240 210" fill="none" stroke="%23e5c07b" stroke-width="28" stroke-linecap="round" opacity=".7"/%3E%3Ctext x="600" y="690" text-anchor="middle" fill="white" font-family="Arial,sans-serif" font-size="42" font-weight="700" opacity=".88"%3EForgeAI%3C/text%3E%3C/svg%3E';
 
+const IMAGE_FAILURE_HANDLER =
+  `this.onerror=null;this.alt='';this.classList.add('forgeai-image-failed');this.src='${IMAGE_FALLBACK}'`;
+
 export function hardenHtml(html: string) {
   let result = cleanHtml(html);
 
@@ -109,13 +112,7 @@ img.forgeai-image-failed { object-fit: cover; background: linear-gradient(135deg
     if (!/\bdata-forgeai-image\b/i.test(next)) next += ' data-forgeai-image="true"';
     if (!/\bloading\s*=/i.test(next)) next += ' loading="lazy"';
     if (!/\bdecoding\s*=/i.test(next)) next += ' decoding="async"';
-    if (!/\bonerror\s*=\s*["']/i.test(next)) {
-      next += ` onerror="this.onerror=null;this.alt='';this.classList.add('forgeai-image-failed');this.src='${IMAGE_FALLBACK}'"`;
-    } else {
-      next = next.replace(/onerror\s*=\s*(["'])/i, (_m, quote) =>
-        `onerror=${quote}this.alt='';this.classList.add('forgeai-image-failed');${quote}`
-      );
-    }
+    if (!/\bonerror\s*=/i.test(next)) next += ` onerror="${IMAGE_FAILURE_HANDLER}"`;
     return `<img${next}>`;
   });
 
