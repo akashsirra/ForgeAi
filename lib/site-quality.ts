@@ -58,6 +58,14 @@ export function validateHtml(html: string): SiteQuality {
     }
   }
 
+  if (/<button\b/i.test(html) && !/type\s*=\s*["'](?:button|submit|reset)["']/i.test(html)) {
+    warnings.push("one or more buttons omit an explicit type");
+  }
+
+  if (/<a\b/i.test(html) && /href\s*=\s*["']#?["']/i.test(html)) {
+    warnings.push("one or more links have an empty or placeholder target");
+  }
+
   return { valid: errors.length === 0, errors, warnings };
 }
 
@@ -76,12 +84,20 @@ export function hardenHtml(html: string) {
 
   const hardeningCss = `
 <style data-forgeai-hardening>
-html, body { max-width: 100%; overflow-x: hidden; }
+html { max-width: 100%; overflow-x: hidden; }
+body { max-width: 100%; min-width: 0 !important; overflow-x: hidden; }
 *, *::before, *::after { box-sizing: border-box; }
 img, svg, video, canvas { max-width: 100%; }
 img { height: auto; }
 button, a, input, select, textarea { max-width: 100%; }
-@media (max-width: 640px) { body { min-width: 0 !important; } }
+button, [role="button"], a { -webkit-tap-highlight-color: transparent; }
+img[data-forgeai-image] { display: block; }
+img.forgeai-image-failed { object-fit: cover; background: linear-gradient(135deg,#151a1f,#3a3024); }
+@media (max-width: 640px) {
+  body { min-width: 0 !important; }
+  img, video, iframe { max-width: 100% !important; }
+  h1 { overflow-wrap: anywhere; }
+}
 </style>`;
 
   if (!/data-forgeai-hardening/i.test(result)) {
@@ -90,10 +106,15 @@ button, a, input, select, textarea { max-width: 100%; }
 
   result = result.replace(/<img\b([^>]*?)(?:\s*\/?)>/gi, (_match: string, attributes: string) => {
     let next = attributes;
+    if (!/\bdata-forgeai-image\b/i.test(next)) next += ' data-forgeai-image="true"';
     if (!/\bloading\s*=/i.test(next)) next += ' loading="lazy"';
     if (!/\bdecoding\s*=/i.test(next)) next += ' decoding="async"';
-    if (!/\bonerror\s*=/i.test(next)) {
-      next += ` onerror="this.onerror=null;this.src='${IMAGE_FALLBACK}'"`;
+    if (!/\bonerror\s*=\s*["']/i.test(next)) {
+      next += ` onerror="this.onerror=null;this.alt='';this.classList.add('forgeai-image-failed');this.src='${IMAGE_FALLBACK}'"`;
+    } else {
+      next = next.replace(/onerror\s*=\s*(["'])/i, (_m, quote) =>
+        `onerror=${quote}this.alt='';this.classList.add('forgeai-image-failed');${quote}`
+      );
     }
     return `<img${next}>`;
   });
