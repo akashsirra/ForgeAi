@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./mobile.css";
@@ -14,8 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ForgeAI — AI Website Builder",
-  description: "Build polished websites with ForgeAI.",
+  title: "ForgeAI — Build Websites With AI",
+  description:
+    "ForgeAI turns your idea into a polished, responsive website and deploys it to the web.",
+  applicationName: "ForgeAI",
+  keywords: ["AI website builder", "website generator", "AI web design", "ForgeAI"],
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#09090b",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
