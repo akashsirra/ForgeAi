@@ -1,0 +1,51 @@
+/* Mobile workspace polish */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  main > header {
+    height: auto !important;
+    min-height: 72px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  main > header > div:first-child {
+    min-width: 0;
+    flex: 1 1 150px;
+  }
+
+  main > header > div:last-child {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  main > header a,
+  main > header button {
+    min-height: 40px;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  .forge-prompt-shell {
+    overflow: hidden;
+  }
+
+  textarea {
+    max-width: 100%;
+  }
+
+  iframe {
+    max-width: 100%;
+  }
+}
