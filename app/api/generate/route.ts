@@ -23,12 +23,18 @@ Design requirements:
 - Avoid fixed desktop widths. Prefer max-width, percentages, flex/grid minmax, intrinsic sizing, and clamp().
 - Use semantic accessible HTML, readable contrast, visible focus states, and comfortable touch targets.
 - Every interactive control that looks functional must actually work with small, self-contained JavaScript when needed.
-- Do not create a hamburger button that does nothing: mobile navigation must open/close.
-- Prefer inline SVG/CSS visuals or resilient image treatment over fragile third-party image URLs. Never leave a hero looking like a blank grey placeholder.
-- If external images are used, include meaningful alt text, lazy loading, and a graceful fallback/background so the design remains attractive if the image fails.
+- Do not create a hamburger button that does nothing: mobile navigation must open/close and close after selecting a link.
+- Do not place decorative or oversized text behind hero headings. Keep hero content layered cleanly with deliberate z-index and spacing.
+- Do not use an image element as the only source of important hero text or layout. Hero text must remain readable if every remote asset fails.
+- Prefer inline SVG/CSS visuals, gradients, shapes, patterns, or resilient local-style compositions for hero backgrounds. These must still look intentional without network access.
+- If using remote images, use normal HTTPS image URLs only, meaningful alt text, lazy loading, decoding=async, object-fit, and a graceful onerror fallback. Never rely on an external image for the page's visual identity.
+- A broken image must never expose a giant alt-text string over the design. Give image containers a deliberate fallback background and keep alt text concise.
+- Avoid image URLs that are likely to require JavaScript, cookies, API keys, hotlink permission, or unstable query parameters.
 - Do not depend on npm packages, frameworks, React, Tailwind, or Next.js inside the generated website.
 - The website must work inside an iframe using srcDoc.
 - Keep CSS inside <style> and JavaScript inside <script>.
+- Keep important content within the viewport and avoid accidental overlap at common phone widths (320px, 360px, 390px, 430px).
+- Use fluid type with clamp() where appropriate and make cards/content naturally wrap.
 - Return ONLY a complete standalone HTML document beginning with <!DOCTYPE html>.
 - Include html, head, charset, viewport, and body.
 - Do not return Markdown, code fences, explanations, or analysis.
@@ -50,11 +56,16 @@ Mandatory checks:
 - readable contrast
 - visible keyboard focus states
 - comfortable mobile touch targets
-- meaningful alt text for images
+- meaningful concise alt text for images
 - no broken-image-looking hero or giant empty/grey placeholder area
+- no giant alt text or image fallback text covering other content
 - external images must have a graceful visual fallback
+- important hero content must remain visually complete if images fail
 - buttons and important links must work or have a sensible target
+- remove accidental overlapping decorative text
 - preserve the original design intent; do not turn it into a generic template
+
+For remote images, make the fallback visual intentional and use an onerror handler that swaps to a safe inline SVG/data image rather than leaving a broken image icon or visible oversized alt text.
 
 Return ONLY the repaired complete HTML document beginning with <!DOCTYPE html>.
 `;
@@ -161,7 +172,6 @@ async function qualityPipeline(
     };
   }
 
-  // A heuristic miss should never destroy a substantial generation.
   if (originalHtml.length >= 1200 && originalQuality.errors.length <= 2) {
     return {
       html: originalHtml,
