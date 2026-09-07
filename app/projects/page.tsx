@@ -25,7 +25,11 @@ export default function ProjectsPage() {
   const [plan, setPlan] = useState<"free" | "pro">("free");
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeProjects: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      unsubscribeProjects?.();
+      unsubscribeProjects = null;
       setUser(currentUser);
 
       if (!currentUser) {
@@ -34,21 +38,23 @@ export default function ProjectsPage() {
         return;
       }
 
-      try {
-        const token = await currentUser.getIdToken();
-        const billingResponse = await fetch("/api/billing", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (billingResponse.ok) {
-          const billing = await billingResponse.json();
-          setPlan(billing.plan === "pro" ? "pro" : "free");
+      void (async () => {
+        try {
+          const token = await currentUser.getIdToken();
+          const billingResponse = await fetch("/api/billing", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (billingResponse.ok) {
+            const billing = await billingResponse.json();
+            setPlan(billing.plan === "pro" ? "pro" : "free");
+          }
+        } catch {
+          setPlan("free");
         }
-      } catch {
-        setPlan("free");
-      }
+      })();
 
       const q = query(collection(db, "projects"), where("userId", "==", currentUser.uid));
-      const unsubscribeProjects = onSnapshot(
+      unsubscribeProjects = onSnapshot(
         q,
         (snapshot) => {
           const loaded = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })) as Project[];
@@ -61,11 +67,12 @@ export default function ProjectsPage() {
           setLoading(false);
         }
       );
-
-      return () => unsubscribeProjects();
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeProjects?.();
+      unsubscribeAuth();
+    };
   }, [router]);
 
   async function deleteProject(id: string) {
@@ -95,12 +102,8 @@ export default function ProjectsPage() {
     <main className="min-h-screen bg-zinc-950 text-white">
       <header className="sticky top-0 z-30 flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-zinc-950/90 px-5 py-3 backdrop-blur-xl">
         <button onClick={() => router.push("/")} className="text-xl font-bold">⚒️ ForgeAI</button>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.push("/pricing")}
-            className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${plan === "pro" ? "border-white/20 bg-white text-black" : "border-amber-400/30 bg-amber-400/10 text-amber-300"}`}
-          >
+          <button onClick={() => router.push("/pricing")} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${plan === "pro" ? "border-white/20 bg-white text-black" : "border-amber-400/30 bg-amber-400/10 text-amber-300"}`}>
             {plan === "pro" ? "⚡ Pro" : "Free · Upgrade"}
           </button>
           <span className="hidden max-w-48 truncate text-xs text-zinc-500 sm:block">{user?.email}</span>
@@ -143,17 +146,13 @@ export default function ProjectsPage() {
                   <iframe srcDoc={project.html} title={`${project.name} preview`} sandbox="" className="pointer-events-none h-[700px] w-[1100px] origin-top-left scale-[0.4]" />
                   {project.deploymentUrl && <div className="absolute right-3 top-3 rounded-full border border-emerald-500/30 bg-zinc-950/90 px-3 py-1 text-xs font-semibold text-emerald-400 shadow-lg">🌍 LIVE</div>}
                 </div>
-
                 <div className="p-5">
                   <h2 className="truncate text-lg font-semibold text-white">{project.name}</h2>
                   <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-zinc-500">{project.prompt}</p>
                   <div className="mt-4 text-xs text-zinc-600">Created {new Date(project.createdAt).toLocaleString()}</div>
-
                   <div className="mt-5 flex gap-2">
                     <button onClick={() => router.push(`/projects/${project.id}`)} className="flex-1 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-zinc-200">✏️ Edit</button>
-                    {project.deploymentUrl && (
-                      <button onClick={() => window.open(project.deploymentUrl, "_blank", "noopener,noreferrer")} className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm transition hover:bg-zinc-800" title="Open live website">🌐</button>
-                    )}
+                    {project.deploymentUrl && <button onClick={() => window.open(project.deploymentUrl, "_blank", "noopener,noreferrer")} className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm transition hover:bg-zinc-800" title="Open live website">🌐</button>}
                     <button onClick={() => deleteProject(project.id)} className="rounded-xl border border-red-900/60 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-950/40" title="Delete project">🗑️</button>
                   </div>
                 </div>
