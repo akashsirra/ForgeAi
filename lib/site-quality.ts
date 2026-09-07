@@ -52,6 +52,10 @@ export function validateHtml(html: string): SiteQuality {
     }
   }
 
+  if (/background(?:-image)?\s*:\s*[^;]*url\s*\(\s*["']?https?:/i.test(html)) {
+    warnings.push("one or more CSS background images depend on remote assets");
+  }
+
   if (/aria-label\s*=\s*["'][^"']*(?:menu|navigation)[^"']*["']/i.test(html)) {
     if (!/addEventListener\s*\(\s*["']click["']/i.test(html) && !/<details\b/i.test(html)) {
       warnings.push("menu control may not have a client-side open/close handler");
@@ -107,12 +111,20 @@ img.forgeai-image-failed { object-fit: cover; background: linear-gradient(135deg
     result = result.replace(/<\/head>/i, `${hardeningCss}\n</head>`);
   }
 
+  // Keep a deliberate visual layer behind remote CSS images so a failed network
+  // request never turns an important hero/card area into a browser-default grey block.
+  result = result.replace(
+    /(background(?:-image)?\s*:\s*)([^;{}]*url\s*\(\s*["']?https?:\/\/[^;{}]*)(;?)/gi,
+    (_match, property, value, ending) =>
+      `${property}linear-gradient(135deg, rgba(15,23,42,.92), rgba(59,47,35,.82)), ${value}${ending}`
+  );
+
   result = result.replace(/<img\b([^>]*?)(?:\s*\/?)>/gi, (_match: string, attributes: string) => {
     let next = attributes;
     if (!/\bdata-forgeai-image\b/i.test(next)) next += ' data-forgeai-image="true"';
     if (!/\bloading\s*=/i.test(next)) next += ' loading="lazy"';
     if (!/\bdecoding\s*=/i.test(next)) next += ' decoding="async"';
-    if (!/\bonerror\s*=/i.test(next)) next += ` onerror="${IMAGE_FAILURE_HANDLER}"`;
+    if (!/\bonerror\s*=\s*["']/i.test(next)) next += ` onerror="${IMAGE_FAILURE_HANDLER}"`;
     return `<img${next}>`;
   });
 
