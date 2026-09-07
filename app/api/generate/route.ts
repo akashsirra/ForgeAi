@@ -1,5 +1,6 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText } from "ai";
+import { cleanHtml, hardenHtml, validateHtml } from "../../../lib/site-quality";
 
 const ASTRA_MODEL = process.env.OPENAI_MODEL || "gpt-6-astra";
 const GROQ_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
@@ -23,7 +24,8 @@ Design requirements:
 - Use semantic accessible HTML, readable contrast, visible focus states, and comfortable touch targets.
 - Every interactive control that looks functional must actually work with small, self-contained JavaScript when needed.
 - Do not create a hamburger button that does nothing: mobile navigation must open/close.
-- Images must never be a single point of failure. Prefer inline SVG, CSS-generated visuals, gradients, or robust fallback backgrounds for hero imagery. If an external image is used, the surrounding design must remain polished when it fails to load.
+- Prefer inline SVG/CSS visuals or resilient image treatment over fragile third-party image URLs. Never leave a hero looking like a blank grey placeholder.
+- If external images are used, include meaningful alt text, lazy loading, and a graceful fallback/background so the design remains attractive if the image fails.
 - Do not depend on npm packages, frameworks, React, Tailwind, or Next.js inside the generated website.
 - The website must work inside an iframe using srcDoc.
 - Keep CSS inside <style> and JavaScript inside <script>.
@@ -56,49 +58,6 @@ Mandatory checks:
 
 Return ONLY the repaired complete HTML document beginning with <!DOCTYPE html>.
 `;
-
-function cleanHtml(text: string) {
-  return text
-    .trim()
-    .replace(/^```html\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-}
-
-function validateHtml(html: string) {
-  const errors: string[] = [];
-  const normalized = html.trim().toLowerCase();
-
-  if (!normalized.startsWith("<!doctype html>")) errors.push("missing <!DOCTYPE html>");
-  if (!normalized.includes("<html")) errors.push("missing <html>");
-  if (!normalized.includes("<head")) errors.push("missing <head>");
-  if (!normalized.includes("<body")) errors.push("missing <body>");
-  if (!normalized.includes('name="viewport"') && !normalized.includes("name='viewport'")) {
-    errors.push("missing viewport metadata");
-  }
-  if (!normalized.includes("<style")) errors.push("missing <style>");
-  if (normalized.includes("```")) errors.push("contains Markdown code fences");
-
-  const scriptOpen = (normalized.match(/<script\b/g) || []).length;
-  const scriptClose = (normalized.match(/<\/script>/g) || []).length;
-  if (scriptOpen !== scriptClose) errors.push("unbalanced <script> tags");
-
-  if (html.length < 1200) errors.push("HTML output is suspiciously small");
-
-  if (!/@media\s*\(/i.test(html) && !/\b(?:clamp|min|max)\s*\(/i.test(html)) {
-    errors.push("missing responsive CSS strategy");
-  }
-
-  if (/min-width\s*:\s*\d{3,}px/i.test(html)) {
-    errors.push("contains a potentially unsafe fixed minimum width");
-  }
-  if (/(?:width|min-width)\s*:\s*\d{4,}px/i.test(html)) {
-    errors.push("contains an oversized fixed width");
-  }
-
-  return { valid: errors.length === 0, errors };
-}
 
 function extractOpenAIText(data: any): string {
   if (typeof data?.output_text === "string") return data.output_text;
@@ -145,7 +104,7 @@ async function generateWithAstra(instructions: string, prompt: string) {
 async function generateWithGroq(model: string, instructions: string, prompt: string) {
   const result = await generateText({
     model: groq(model),
-    maxOutputTokens: 9000,
+    maxOutputTokens: 12000,
     system: instructions,
     prompt,
   });
@@ -168,32 +127,47 @@ async function repairHtmlWithGroq(model: string, html: string, errors: string[])
   );
 }
 
-async function qualityPipeline(generate: () => Promise<string>, repair: (html: string, errors: string[]) => Promise<string>) {
-  const originalHtml = await generate();
+async function qualityPipeline(
+  generate: () => Promise<string>,
+  repair: (html: string, errors: string[]) => Promise<string>
+) {
+  const originalHtml = hardenHtml(await generate());
   const originalQuality = validateHtml(originalHtml);
 
   if (originalQuality.valid) {
-    return { html: originalHtml, qualityChecked: true };
+    return {
+      html: originalHtml,
+      qualityChecked: true,
+      warnings: originalQuality.warnings,
+    };
   }
 
   console.warn("ForgeAI quality repair required:", originalQuality.errors);
 
-  let repairedHtml = await repair(originalHtml, originalQuality.errors);
+  let repairedHtml = hardenHtml(await repair(originalHtml, originalQuality.errors));
   let repairedQuality = validateHtml(repairedHtml);
 
   if (!repairedQuality.valid) {
     console.warn("ForgeAI first repair still failed:", repairedQuality.errors);
-    repairedHtml = await repair(repairedHtml || originalHtml, repairedQuality.errors);
+    repairedHtml = hardenHtml(await repair(repairedHtml || originalHtml, repairedQuality.errors));
     repairedQuality = validateHtml(repairedHtml);
   }
 
   if (repairedQuality.valid) {
-    return { html: repairedHtml, qualityChecked: true };
+    return {
+      html: repairedHtml,
+      qualityChecked: true,
+      warnings: repairedQuality.warnings,
+    };
   }
 
   // A heuristic miss should never destroy a substantial generation.
   if (originalHtml.length >= 1200 && originalQuality.errors.length <= 2) {
-    return { html: originalHtml, qualityChecked: false };
+    return {
+      html: originalHtml,
+      qualityChecked: false,
+      warnings: [...originalQuality.warnings, ...repairedQuality.errors],
+    };
   }
 
   throw new Error(`HTML quality control failed: ${repairedQuality.errors.join(", ")}`);
@@ -219,8 +193,6 @@ export async function POST(req: Request) {
 
     let lastError: unknown = null;
 
-    // Astra is the primary production path when an OpenAI key is configured.
-    // Groq remains an automatic fallback so existing deployments keep working.
     if (process.env.OPENAI_API_KEY) {
       try {
         console.log(`ForgeAI using ${ASTRA_MODEL}`);
@@ -233,6 +205,7 @@ export async function POST(req: Request) {
           html: result.html,
           model: ASTRA_MODEL,
           qualityChecked: result.qualityChecked,
+          qualityWarnings: result.warnings,
           provider: "openai",
         });
       } catch (error) {
@@ -263,6 +236,7 @@ export async function POST(req: Request) {
           html: result.html,
           model,
           qualityChecked: result.qualityChecked,
+          qualityWarnings: result.warnings,
           provider: "groq",
         });
       } catch (error) {
